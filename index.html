@@ -1,292 +1,218 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seguimiento GPS - Yumbo</title>
-
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101b2d">
+<title>Transporte Yumbo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #101827;
-  color: white;
-}
-
-header {
-  background: #172b46;
-  padding: 18px;
-  text-align: center;
-}
-
-h2 { margin: 0; }
-
-.panel {
-  padding: 18px;
-}
-
-.dato {
-  background: #1c2b40;
-  padding: 12px;
-  border-radius: 9px;
-  margin: 9px 0;
-}
-
-.valor {
-  color: #45d6a0;
-  font-weight: bold;
-}
-
-button {
-  width: 100%;
-  padding: 14px;
-  border: 0;
-  border-radius: 9px;
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: bold;
-}
-
-#iniciar { background: #20b981; color: white; }
-#detener { background: #dc5252; color: white; }
-
-#mapa {
-  height: 350px;
-  margin-top: 15px;
-  border-radius: 10px;
-}
-
-small { color: #b5c4d8; }
+:root{--bg:#0b1423;--panel:#142238;--line:#2a405d;--text:#f3f7fc;--muted:#a8bad0;--green:#27d69a;--blue:#63a8ff;--red:#ff747b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{padding:20px 16px;background:linear-gradient(135deg,#173b5d,#12243b);border-bottom:1px solid var(--line);text-align:center}
+.brand{font-weight:900;letter-spacing:.08em;font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:5px}
+main{max-width:980px;margin:auto;padding:16px;display:grid;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px}
+h1{font-size:22px;margin:0 0 7px}h2{font-size:18px;margin:0 0 10px}h3{font-size:15px;margin:14px 0 8px}
+.muted,.help{color:var(--muted);font-size:12px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.role{min-height:145px;text-align:left;display:flex;flex-direction:column;gap:9px;justify-content:flex-start}
+.role .emoji{font-size:30px}.role b{font-size:16px}.role span:last-child{font-size:12px;color:var(--muted);font-weight:400}
+button,input,select{font:inherit}button{padding:12px;border-radius:10px;border:1px solid var(--line);background:#263b56;color:var(--text);font-weight:700}
+button.primary{background:var(--green);border-color:var(--green);color:#062017}
+button.danger{background:#512832;border-color:#743640}
+button:disabled{opacity:.45}
+input,select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0b1423;color:var(--text)}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
+.field{margin:10px 0}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1}
+.stat{background:#0b1423;border-radius:10px;padding:11px;margin:8px 0}.stat b{color:var(--green)}
+#map{height:390px;border-radius:11px;overflow:hidden}
+#status{color:var(--green);font-weight:700}
+.hidden{display:none!important}
+.back{margin-bottom:10px;background:transparent}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tabs button{flex:1}
+.list{font-size:13px;color:var(--muted);line-height:1.8}
+@media(max-width:620px){.grid{grid-template-columns:1fr}.role{min-height:110px;display:grid;grid-template-columns:45px 1fr;align-items:center}.role .emoji{grid-row:span 2}.role span:last-child{grid-column:2}#map{height:340px}}
 </style>
 </head>
-
 <body>
-
-<header>
-  <h2>TRANSPORTE YUMBO</h2>
-  <small>Sistema de seguimiento GPS</small>
-</header>
-
-<div class="panel">
-
-  <h3>Vehículo: BUS001</h3>
-
-  <div class="dato">
-    Estado: <span class="valor" id="estado">Desconectado</span>
+<header><div class="brand">TRANSPORTE YUMBO</div><div class="sub">Sistema de información y seguimiento GPS</div></header>
+<main>
+<section id="home">
+ <div class="card">
+  <h1>Bienvenido</h1><p class="muted">Selecciona el modo que deseas utilizar.</p>
+  <div class="grid">
+   <button class="role" onclick="showRole('admin')"><span class="emoji">🛠️</span><b>Administrador</b><span>Crear recorridos, paradas y administrar rutas.</span></button>
+   <button class="role" onclick="showRole('driver')"><span class="emoji">🚌</span><b>Conductor</b><span>Activar GPS y transmitir la ubicación del vehículo.</span></button>
+   <button class="role" onclick="showRole('passenger')"><span class="emoji">📍</span><b>Pasajero</b><span>Consultar recorridos y ubicación de los buses.</span></button>
   </div>
+ </div>
+ <p class="help">Prototipo académico. La ubicación y los tiempos estimados dependen de la conexión y la señal GPS.</p>
+</section>
 
-  <div class="dato">
-    Latitud: <span class="valor" id="latitud">--</span>
-  </div>
+<section id="admin" class="hidden">
+ <button class="back" onclick="goHome()">← Volver al inicio</button>
+ <div class="card">
+  <h1>Administrador de rutas</h1><p class="muted">Dibuja el recorrido tocando el mapa y agrega sus paradas. También puedes grabarlo con GPS.</p>
+  <div class="field"><label>Nombre del recorrido</label><input id="routeName" placeholder="Ej. Centro - La Estancia"></div>
+  <div class="field"><label>Código único</label><input id="routeId" value="RUTA001"></div>
+  <div class="tabs"><button id="manualTab" class="primary" onclick="setMode('manual')">Dibujar en mapa</button><button id="gpsTab" onclick="setMode('gps')">Grabar con GPS</button></div>
+  <div class="row"><button onclick="addStopAtLast()">Marcar último punto como parada</button><button onclick="undoPoint()">Deshacer punto</button></div>
+  <div class="row" id="gpsControls" style="margin-top:8px"><button class="primary" id="startRouteGps" onclick="startRouteGPS()">Iniciar GPS</button><button class="danger" id="stopRouteGps" onclick="stopRouteGPS()" disabled>Detener GPS</button><button onclick="addGpsStop()">Parada aquí</button></div>
+  <div class="stat">Estado: <b id="adminStatus">Listo para crear ruta</b></div>
+  <div id="map"></div>
+  <div class="row"><div class="stat">Puntos: <b id="pointCount">0</b></div><div class="stat">Paradas: <b id="stopCount">0</b></div><div class="stat">Distancia: <b id="distance">0 m</b></div></div>
+  <div id="stopList" class="list">Aún no hay paradas.</div>
+  <div class="row"><button class="danger" onclick="clearRoute()">Borrar diseño</button><button class="primary" onclick="saveRoute()">Guardar ruta en Firebase</button></div>
+ </div>
+ <div class="card"><h2>Rutas guardadas</h2><button onclick="loadRoutes()">Actualizar lista</button><div id="routesList" class="list">Pulsa actualizar para consultar Firebase.</div></div>
+</section>
 
-  <div class="dato">
-    Longitud: <span class="valor" id="longitud">--</span>
-  </div>
+<section id="driver" class="hidden">
+ <button class="back" onclick="goHome()">← Volver al inicio</button>
+ <div class="card">
+  <h1>Modo conductor</h1><p class="muted">Selecciona el vehículo y la ruta asignada antes de iniciar el GPS.</p>
+  <div class="field"><label>Vehículo</label><input id="busId" value="BUS001"></div>
+  <div class="field"><label>Ruta asignada</label><select id="driverRoute"><option value="RUTA001">Cargando rutas...</option></select></div>
+  <div class="row"><button class="primary" onclick="startDriverGPS()">Iniciar seguimiento</button><button class="danger" onclick="stopDriverGPS()">Detener</button></div>
+  <div class="stat">Estado: <b id="driverStatus">Desconectado</b></div>
+  <div class="stat">Latitud: <b id="driverLat">--</b> · Longitud: <b id="driverLon">--</b></div>
+  <div class="stat">Velocidad: <b id="driverSpeed">--</b></div>
+  <div class="stat">Última actualización: <b id="driverTime">--</b></div>
+ </div>
+</section>
 
-  <div class="dato">
-    Velocidad: <span class="valor" id="velocidad">--</span>
-  </div>
-
-  <div class="dato">
-    Precisión GPS: <span class="valor" id="precision">--</span>
-  </div>
-
-  <div class="dato">
-    Última actualización:
-    <span class="valor" id="hora">--</span>
-  </div>
-
-  <button id="iniciar" onclick="iniciarGPS()">
-    INICIAR SEGUIMIENTO
-  </button>
-
-  <button id="detener" onclick="detenerGPS()">
-    DETENER SEGUIMIENTO
-  </button>
-
-  <div id="mapa"></div>
-
-  <h3>Información transmitible</h3>
-  <pre id="datos" style="white-space:pre-wrap;background:#1c2b40;padding:12px;border-radius:9px;">Esperando GPS...</pre>
-
-</div>
-
+<section id="passenger" class="hidden">
+ <button class="back" onclick="goHome()">← Volver al inicio</button>
+ <div class="card">
+  <h1>Consulta para pasajeros</h1>
+  <div class="field"><label>Vehículo</label><select id="passengerBus"><option value="BUS001">BUS001</option></select></div>
+  <div class="field"><label>Recorrido</label><select id="passengerRoute"><option value="">Selecciona una ruta</option></select></div>
+  <div class="stat">Estado del bus: <b id="passengerStatus">Consultando...</b></div>
+  <div class="stat">Velocidad: <b id="passengerSpeed">--</b> · Última actualización: <b id="passengerTime">--</b></div>
+  <div class="stat">Siguiente parada estimada: <b id="nextStop">--</b></div>
+  <div class="stat">ETA de prueba: <b id="eta">Selecciona un destino en el mapa</b></div>
+  <p class="help">Toca el mapa para marcar un destino de prueba. El ETA actual usa distancia en línea recta y velocidad GPS; todavía no considera calles, tráfico ni paradas.</p>
+  <div id="passengerMap" style="height:360px;border-radius:11px"></div>
+ </div>
+</section>
+</main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-
-// CONEXIÓN CON FIREBASE
-const FIREBASE_URL =
-"https://mi-ruta-1ceed-default-rtdb.firebaseio.com/buses/BUS001.json";
-
-const mapa = L.map('mapa').setView([3.582, -76.49], 14);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap'
-}).addTo(mapa);
-
-let marcador = null;
-let circulo = null;
-let seguimiento = null;
-
-// FUNCIÓN PARA ENVIAR DATOS A FIREBASE
-async function transmitirFirebase(registro) {
-
-  try {
-
-    const respuesta = await fetch(FIREBASE_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(registro)
-    });
-
-    if (!respuesta.ok) {
-      throw new Error('Error HTTP: ' + respuesta.status);
-    }
-
-    document.getElementById('estado').textContent =
-      'GPS activo - Datos enviados a Firebase';
-
-  } catch (error) {
-
-    console.error('Error Firebase:', error);
-
-    document.getElementById('estado').textContent =
-      'GPS activo - Error al transmitir';
-
-  }
+const DB='https://mi-ruta-1ceed-default-rtdb.firebaseio.com';
+const $=id=>document.getElementById(id);
+let activeRole=null, map=null, routeMode='manual', routePoints=[], routeStops=[], routeLine=null, routePointLayer=null, routeStopLayer=null, routeWatch=null, latestGps=null;
+let driverWatch=null, passengerTimer=null, passengerMap=null, busMarker=null, routeDisplay=null, destinationMarker=null, busPosition=null, busSpeed=null, destination=null;
+function showRole(role){
+ ['home','admin','driver','passenger'].forEach(id=>$(id).classList.toggle('hidden',id!==role));
+ activeRole=role;
+ if(role==='admin')initAdminMap();
+ if(role==='driver')loadRoutes();
+ if(role==='passenger'){initPassengerMap();loadRoutes();startPassengerPolling();}
 }
-
-// INICIAR GPS
-function iniciarGPS() {
-
-  if (!window.isSecureContext) {
-    document.getElementById('estado').textContent =
-      'Se necesita HTTPS o localhost';
-    return;
-  }
-
-  if (!navigator.geolocation) {
-    document.getElementById('estado').textContent =
-      'GPS no disponible';
-    return;
-  }
-
-  if (seguimiento !== null) {
-    navigator.geolocation.clearWatch(seguimiento);
-  }
-
-  document.getElementById('estado').textContent =
-    'Buscando ubicación...';
-
-  seguimiento = navigator.geolocation.watchPosition(
-
-    function(posicion) {
-
-      const lat = posicion.coords.latitude;
-      const lon = posicion.coords.longitude;
-      const precision = posicion.coords.accuracy;
-      const velocidad = posicion.coords.speed;
-
-      const hora = new Date(posicion.timestamp)
-        .toLocaleTimeString();
-
-      document.getElementById('latitud').textContent =
-        lat.toFixed(6);
-
-      document.getElementById('longitud').textContent =
-        lon.toFixed(6);
-
-      document.getElementById('precision').textContent =
-        Math.round(precision) + ' metros';
-
-      document.getElementById('velocidad').textContent =
-        velocidad === null
-          ? 'No disponible'
-          : (velocidad * 3.6).toFixed(1) + ' km/h';
-
-      document.getElementById('hora').textContent = hora;
-
-      const punto = [lat, lon];
-
-      if (!marcador) {
-        marcador = L.marker(punto).addTo(mapa);
-        marcador.bindPopup('BUS001').openPopup();
-      } else {
-        marcador.setLatLng(punto);
-      }
-
-      if (!circulo) {
-        circulo = L.circle(punto, {
-          radius: precision,
-          color: '#20b981'
-        }).addTo(mapa);
-      } else {
-        circulo.setLatLng(punto);
-        circulo.setRadius(precision);
-      }
-
-      mapa.setView(punto, 16);
-
-      // INFORMACIÓN DEL VEHÍCULO
-      const registro = {
-        bus_id: 'BUS001',
-        latitude: lat,
-        longitude: lon,
-        speed_kmh: velocidad === null
-          ? null
-          : velocidad * 3.6,
-        accuracy_meters: precision,
-        timestamp: new Date(posicion.timestamp).toISOString()
-      };
-
-      document.getElementById('datos').textContent =
-        JSON.stringify(registro, null, 2);
-
-      // TRANSMITIR AUTOMÁTICAMENTE
-      transmitirFirebase(registro);
-
-    },
-
-    function(error) {
-
-      const mensajes = {
-        1: 'Permiso de ubicación denegado',
-        2: 'Ubicación no disponible',
-        3: 'Tiempo de espera agotado'
-      };
-
-      document.getElementById('estado').textContent =
-        mensajes[error.code] || 'Error GPS';
-    },
-
-    {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 20000
-    }
-  );
+function goHome(){
+ stopRouteGPS();stopDriverGPS();if(passengerTimer){clearInterval(passengerTimer);passengerTimer=null}
+ ['home','admin','driver','passenger'].forEach(id=>$(id).classList.toggle('hidden',id!=='home'));activeRole=null;
 }
-
-// DETENER GPS
-function detenerGPS() {
-
-  if (seguimiento !== null) {
-    navigator.geolocation.clearWatch(seguimiento);
-    seguimiento = null;
-  }
-
-  document.getElementById('estado').textContent =
-    'Seguimiento detenido';
+function initAdminMap(){
+ if(map)return;
+ map=L.map('map').setView([3.582,-76.49],14);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+ routePointLayer=L.layerGroup().addTo(map);routeStopLayer=L.layerGroup().addTo(map);
+ map.on('click',e=>{if(routeMode==='manual')addRoutePoint(e.latlng.lat,e.latlng.lng)});
+ setTimeout(()=>map.invalidateSize(),150);
 }
-
+function setMode(mode){
+ routeMode=mode;$('manualTab').classList.toggle('primary',mode==='manual');$('gpsTab').classList.toggle('primary',mode==='gps');
+ $('adminStatus').textContent=mode==='manual'?'Toca el mapa para dibujar':'Pulsa Iniciar GPS y recorre el trayecto';
+}
+function distance(a,b){const rad=x=>x*Math.PI/180,R=6371000,d1=rad(b.lat-a.lat),d2=rad(b.lon-a.lon),v=Math.sin(d1/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(d2/2)**2;return 2*R*Math.atan2(Math.sqrt(v),Math.sqrt(1-v))}
+function routeDistance(){let d=0;for(let i=1;i<routePoints.length;i++)d+=distance(routePoints[i-1],routePoints[i]);return d}
+function addRoutePoint(lat,lon){const p={lat:Number(lat),lon:Number(lon)};if(routePoints.length&&distance(routePoints[routePoints.length-1],p)<4)return;routePoints.push(p);renderRoute();$('adminStatus').textContent='Punto agregado'}
+function renderRoute(){
+ if(!routePointLayer)return;routePointLayer.clearLayers();routeStopLayer.clearLayers();
+ routePoints.forEach((p,i)=>L.circleMarker([p.lat,p.lon],{radius:5,color:'#63a8ff',fillOpacity:1}).bindTooltip('Punto '+(i+1)).addTo(routePointLayer));
+ routeStops.forEach(s=>L.marker([s.lat,s.lon]).bindPopup(s.name).addTo(routeStopLayer));
+ if(routeLine)map.removeLayer(routeLine);routeLine=routePoints.length>1?L.polyline(routePoints.map(p=>[p.lat,p.lon]),{color:'#27d69a',weight:5}).addTo(map):null;
+ $('pointCount').textContent=routePoints.length;$('stopCount').textContent=routeStops.length;let d=routeDistance();$('distance').textContent=d>1000?(d/1000).toFixed(2)+' km':Math.round(d)+' m';
+ $('stopList').innerHTML=routeStops.length?routeStops.map((s,i)=>(i+1)+'. '+escapeHtml(s.name)).join('<br>'):'Aún no hay paradas.';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function addStopAtLast(){if(!routePoints.length){$('adminStatus').textContent='Agrega un punto primero';return}let p=routePoints[routePoints.length-1],name=prompt('Nombre de la parada:','Parada '+(routeStops.length+1));if(name&&name.trim()){routeStops.push({name:name.trim(),lat:p.lat,lon:p.lon,point_index:routePoints.length});renderRoute()}}
+function addGpsStop(){if(!latestGps){$('adminStatus').textContent='Esperando ubicación GPS';return}let name=prompt('Nombre de la parada:','Parada '+(routeStops.length+1));if(name&&name.trim()){routeStops.push({name:name.trim(),lat:latestGps.lat,lon:latestGps.lon,point_index:routePoints.length});renderRoute()}}
+function undoPoint(){routePoints.pop();routeStops=routeStops.filter(s=>s.point_index<=routePoints.length);renderRoute()}
+function clearRoute(){if(!confirm('¿Borrar el diseño actual?'))return;routePoints=[];routeStops=[];renderRoute();$('adminStatus').textContent='Diseño borrado'}
+function startRouteGPS(){
+ if(!navigator.geolocation){$('adminStatus').textContent='GPS no disponible';return}
+ if(routeWatch!==null)return;
+ routeWatch=navigator.geolocation.watchPosition(pos=>{latestGps={lat:pos.coords.latitude,lon:pos.coords.longitude};if(!routePoints.length||distance(routePoints[routePoints.length-1],latestGps)>=10)addRoutePoint(latestGps.lat,latestGps.lon);$('adminStatus').textContent='Grabando GPS · precisión '+Math.round(pos.coords.accuracy)+' m'},err=>$('adminStatus').textContent='Error GPS: '+err.message,{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+ $('startRouteGps').disabled=true;$('stopRouteGps').disabled=false;
+}
+function stopRouteGPS(){if(routeWatch!==null){navigator.geolocation.clearWatch(routeWatch);routeWatch=null}if($('startRouteGps'))$('startRouteGps').disabled=false;if($('stopRouteGps'))$('stopRouteGps').disabled=true}
+async function saveRoute(){
+ let name=$('routeName').value.trim(),id=$('routeId').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+ if(!name||!id){$('adminStatus').textContent='Escribe nombre y código';return}
+ if(routePoints.length<2||routeStops.length<2){$('adminStatus').textContent='Necesitas al menos 2 puntos y 2 paradas';return}
+ let data={route_id:id,name,method:routeMode,coordinates:routePoints.map((p,i)=>({sequence:i+1,latitude:p.lat,longitude:p.lon})),stops:routeStops.map((s,i)=>({sequence:i+1,name:s.name,latitude:s.lat,longitude:s.lon,point_index:s.point_index})),distance_meters:Math.round(routeDistance()),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ try{let r=await fetch(DB+'/routes/'+encodeURIComponent(id)+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw Error('HTTP '+r.status);$('adminStatus').textContent='Ruta guardada correctamente';alert('La ruta '+id+' quedó guardada en Firebase');await loadRoutes()}
+ catch(e){console.error(e);$('adminStatus').textContent='Error al guardar en Firebase: '+e.message}
+}
+async function loadRoutes(){
+ try{let r=await fetch(DB+'/routes.json');if(!r.ok)throw Error('HTTP '+r.status);let data=await r.json()||{},items=Object.values(data);
+ const options=items.map(x=>`<option value="${escapeHtml(x.route_id)}">${escapeHtml(x.name)} (${escapeHtml(x.route_id)})</option>`).join('');
+ if($('driverRoute'))$('driverRoute').innerHTML=options||'<option value="RUTA001">No hay rutas guardadas</option>';
+ if($('passengerRoute'))$('passengerRoute').innerHTML='<option value="">Selecciona una ruta</option>'+options;
+ $('routesList').innerHTML=items.length?items.map(x=>escapeHtml(x.route_id)+' — '+escapeHtml(x.name)).join('<br>'):'No hay rutas guardadas.';
+ }catch(e){if($('routesList'))$('routesList').textContent='No se pudieron consultar las rutas: '+e.message}
+}
+function startDriverGPS(){
+ let bus=$('busId').value.trim().toUpperCase(),route=$('driverRoute').value;
+ if(!bus||!route){$('driverStatus').textContent='Selecciona vehículo y ruta';return}
+ if(!navigator.geolocation){$('driverStatus').textContent='GPS no disponible';return}
+ stopDriverGPS();
+ $('driverStatus').textContent='Buscando ubicación...';
+ driverWatch=navigator.geolocation.watchPosition(async pos=>{
+ let c=pos.coords,record={bus_id:bus,route_id:route,latitude:c.latitude,longitude:c.longitude,speed_kmh:c.speed===null?null:c.speed*3.6,accuracy_meters:c.accuracy,timestamp:new Date(pos.timestamp).toISOString()};
+ $('driverLat').textContent=c.latitude.toFixed(6);$('driverLon').textContent=c.longitude.toFixed(6);$('driverSpeed').textContent=record.speed_kmh===null?'No disponible':record.speed_kmh.toFixed(1)+' km/h';$('driverTime').textContent=new Date(pos.timestamp).toLocaleTimeString();
+ try{let r=await fetch(DB+'/buses/'+encodeURIComponent(bus)+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});if(!r.ok)throw Error('HTTP '+r.status);$('driverStatus').textContent='GPS activo · datos enviados a Firebase'}catch(e){$('driverStatus').textContent='Error al transmitir: '+e.message}
+ },err=>$('driverStatus').textContent='Error GPS: '+err.message,{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+}
+function stopDriverGPS(){if(driverWatch!==null){navigator.geolocation.clearWatch(driverWatch);driverWatch=null}if($('driverStatus'))$('driverStatus').textContent='Seguimiento detenido'}
+function initPassengerMap(){
+ if(passengerMap){setTimeout(()=>passengerMap.invalidateSize(),150);return}
+ passengerMap=L.map('passengerMap').setView([3.582,-76.49],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(passengerMap);
+ passengerMap.on('click',e=>{destination={lat:e.latlng.lat,lon:e.latlng.lng};if(destinationMarker)destinationMarker.setLatLng(e.latlng);else destinationMarker=L.marker(e.latlng).addTo(passengerMap).bindPopup('Destino de prueba');calculateETA()});
+}
+function startPassengerPolling(){if(passengerTimer)clearInterval(passengerTimer);readPassenger();passengerTimer=setInterval(readPassenger,4000)}
+async function readPassenger(){
+ let bus=$('passengerBus').value||'BUS001';
+ try{
+ let r=await fetch(DB+'/buses/'+encodeURIComponent(bus)+'.json');if(!r.ok)throw Error('HTTP '+r.status);let d=await r.json();
+ if(!d||d.latitude==null){$('passengerStatus').textContent='Esperando datos del bus';return}
+ busPosition={lat:Number(d.latitude),lon:Number(d.longitude)};busSpeed=d.speed_kmh==null?null:Number(d.speed_kmh);
+ let p=[busPosition.lat,busPosition.lon];if(!busMarker)busMarker=L.marker(p).addTo(passengerMap).bindPopup(bus);else busMarker.setLatLng(p);
+ let age=Date.now()-new Date(d.timestamp).getTime();$('passengerStatus').textContent=age>30000?'Ubicación desactualizada':'Bus localizado';$('passengerSpeed').textContent=busSpeed===null?'No disponible':busSpeed.toFixed(1)+' km/h';$('passengerTime').textContent=new Date(d.timestamp).toLocaleTimeString();
+ let selected=$('passengerRoute').value||d.route_id;await drawPassengerRoute(selected);calculateETA();passengerMap.setView(p,15);
+ }catch(e){$('passengerStatus').textContent='Error de conexión: '+e.message}
+}
+async function drawPassengerRoute(id){
+ if(!id)return;
+ try{let r=await fetch(DB+'/routes/'+encodeURIComponent(id)+'.json');if(!r.ok)return;let route=await r.json();if(!route||!route.coordinates)return;
+ let coords=route.coordinates.map(p=>[Number(p.latitude),Number(p.longitude)]);
+ if(routeDisplay)passengerMap.removeLayer(routeDisplay);routeDisplay=L.polyline(coords,{color:'#27d69a',weight:5}).addTo(passengerMap);
+ let next='No disponible';if(route.stops&&busPosition){let nearest=route.stops.map(s=>({s,d:distance(busPosition,{lat:Number(s.latitude),lon:Number(s.longitude)})})).sort((a,b)=>a.d-b.d)[0];if(nearest)next=nearest.s.name+' (parada más cercana)'}
+ $('nextStop').textContent=next;
+ }catch(e){console.error(e)}
+}
+function calculateETA(){
+ if(!busPosition||!destination){$('eta').textContent='Selecciona un destino en el mapa';return}
+ let km=distance(busPosition,destination)/1000;
+ if(km<.03){$('eta').textContent='Destino alcanzado';return}
+ if(busSpeed===null||busSpeed<3){$('eta').textContent='Velocidad insuficiente para estimar';return}
+ $('eta').textContent=Math.round(km/busSpeed*60)+' minutos aprox. (línea recta)';
+}
+$('passengerRoute').addEventListener('change',()=>{if(busPosition)drawPassengerRoute($('passengerRoute').value)});
 </script>
-
 </body>
-</html>
+</htm
