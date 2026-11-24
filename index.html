@@ -1,0 +1,292 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento GPS - Yumbo</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #101827;
+  color: white;
+}
+
+header {
+  background: #172b46;
+  padding: 18px;
+  text-align: center;
+}
+
+h2 { margin: 0; }
+
+.panel {
+  padding: 18px;
+}
+
+.dato {
+  background: #1c2b40;
+  padding: 12px;
+  border-radius: 9px;
+  margin: 9px 0;
+}
+
+.valor {
+  color: #45d6a0;
+  font-weight: bold;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 9px;
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#iniciar { background: #20b981; color: white; }
+#detener { background: #dc5252; color: white; }
+
+#mapa {
+  height: 350px;
+  margin-top: 15px;
+  border-radius: 10px;
+}
+
+small { color: #b5c4d8; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>TRANSPORTE YUMBO</h2>
+  <small>Sistema de seguimiento GPS</small>
+</header>
+
+<div class="panel">
+
+  <h3>Vehículo: BUS001</h3>
+
+  <div class="dato">
+    Estado: <span class="valor" id="estado">Desconectado</span>
+  </div>
+
+  <div class="dato">
+    Latitud: <span class="valor" id="latitud">--</span>
+  </div>
+
+  <div class="dato">
+    Longitud: <span class="valor" id="longitud">--</span>
+  </div>
+
+  <div class="dato">
+    Velocidad: <span class="valor" id="velocidad">--</span>
+  </div>
+
+  <div class="dato">
+    Precisión GPS: <span class="valor" id="precision">--</span>
+  </div>
+
+  <div class="dato">
+    Última actualización:
+    <span class="valor" id="hora">--</span>
+  </div>
+
+  <button id="iniciar" onclick="iniciarGPS()">
+    INICIAR SEGUIMIENTO
+  </button>
+
+  <button id="detener" onclick="detenerGPS()">
+    DETENER SEGUIMIENTO
+  </button>
+
+  <div id="mapa"></div>
+
+  <h3>Información transmitible</h3>
+  <pre id="datos" style="white-space:pre-wrap;background:#1c2b40;padding:12px;border-radius:9px;">Esperando GPS...</pre>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// CONEXIÓN CON FIREBASE
+const FIREBASE_URL =
+"https://mi-ruta-1ceed-default-rtdb.firebaseio.com/buses/BUS001.json";
+
+const mapa = L.map('mapa').setView([3.582, -76.49], 14);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+}).addTo(mapa);
+
+let marcador = null;
+let circulo = null;
+let seguimiento = null;
+
+// FUNCIÓN PARA ENVIAR DATOS A FIREBASE
+async function transmitirFirebase(registro) {
+
+  try {
+
+    const respuesta = await fetch(FIREBASE_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(registro)
+    });
+
+    if (!respuesta.ok) {
+      throw new Error('Error HTTP: ' + respuesta.status);
+    }
+
+    document.getElementById('estado').textContent =
+      'GPS activo - Datos enviados a Firebase';
+
+  } catch (error) {
+
+    console.error('Error Firebase:', error);
+
+    document.getElementById('estado').textContent =
+      'GPS activo - Error al transmitir';
+
+  }
+}
+
+// INICIAR GPS
+function iniciarGPS() {
+
+  if (!window.isSecureContext) {
+    document.getElementById('estado').textContent =
+      'Se necesita HTTPS o localhost';
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    document.getElementById('estado').textContent =
+      'GPS no disponible';
+    return;
+  }
+
+  if (seguimiento !== null) {
+    navigator.geolocation.clearWatch(seguimiento);
+  }
+
+  document.getElementById('estado').textContent =
+    'Buscando ubicación...';
+
+  seguimiento = navigator.geolocation.watchPosition(
+
+    function(posicion) {
+
+      const lat = posicion.coords.latitude;
+      const lon = posicion.coords.longitude;
+      const precision = posicion.coords.accuracy;
+      const velocidad = posicion.coords.speed;
+
+      const hora = new Date(posicion.timestamp)
+        .toLocaleTimeString();
+
+      document.getElementById('latitud').textContent =
+        lat.toFixed(6);
+
+      document.getElementById('longitud').textContent =
+        lon.toFixed(6);
+
+      document.getElementById('precision').textContent =
+        Math.round(precision) + ' metros';
+
+      document.getElementById('velocidad').textContent =
+        velocidad === null
+          ? 'No disponible'
+          : (velocidad * 3.6).toFixed(1) + ' km/h';
+
+      document.getElementById('hora').textContent = hora;
+
+      const punto = [lat, lon];
+
+      if (!marcador) {
+        marcador = L.marker(punto).addTo(mapa);
+        marcador.bindPopup('BUS001').openPopup();
+      } else {
+        marcador.setLatLng(punto);
+      }
+
+      if (!circulo) {
+        circulo = L.circle(punto, {
+          radius: precision,
+          color: '#20b981'
+        }).addTo(mapa);
+      } else {
+        circulo.setLatLng(punto);
+        circulo.setRadius(precision);
+      }
+
+      mapa.setView(punto, 16);
+
+      // INFORMACIÓN DEL VEHÍCULO
+      const registro = {
+        bus_id: 'BUS001',
+        latitude: lat,
+        longitude: lon,
+        speed_kmh: velocidad === null
+          ? null
+          : velocidad * 3.6,
+        accuracy_meters: precision,
+        timestamp: new Date(posicion.timestamp).toISOString()
+      };
+
+      document.getElementById('datos').textContent =
+        JSON.stringify(registro, null, 2);
+
+      // TRANSMITIR AUTOMÁTICAMENTE
+      transmitirFirebase(registro);
+
+    },
+
+    function(error) {
+
+      const mensajes = {
+        1: 'Permiso de ubicación denegado',
+        2: 'Ubicación no disponible',
+        3: 'Tiempo de espera agotado'
+      };
+
+      document.getElementById('estado').textContent =
+        mensajes[error.code] || 'Error GPS';
+    },
+
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 20000
+    }
+  );
+}
+
+// DETENER GPS
+function detenerGPS() {
+
+  if (seguimiento !== null) {
+    navigator.geolocation.clearWatch(seguimiento);
+    seguimiento = null;
+  }
+
+  document.getElementById('estado').textContent =
+    'Seguimiento detenido';
+}
+
+</script>
+
+</body>
+</html>
