@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101b2d">
+<title>Administrador de rutas | Transporte Yumbo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#0b1423;--panel:#142238;--line:#2a405d;--text:#f3f7fc;--muted:#a8bad0;--green:#27d69a;--blue:#63a8ff;--red:#ff747b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{padding:18px;background:linear-gradient(135deg,#173b5d,#12243b);border-bottom:1px solid var(--line)}
+.wrap{max-width:1050px;margin:auto}.brand{font-weight:850;letter-spacing:.06em}.sub{color:var(--muted);font-size:13px;margin-top:4px}
+main{max-width:1050px;margin:auto;padding:15px;display:grid;gap:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+h1{font-size:21px;margin:0 0 5px}.muted,.help{color:var(--muted);font-size:12px;line-height:1.5}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0b1423;color:var(--text);font:inherit}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tabs,.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{padding:12px;border-radius:10px;border:1px solid var(--line);background:#263b56;color:var(--text);font-weight:700;font-size:14px}
+button.primary{background:var(--green);border-color:var(--green);color:#062017}
+button.active{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+button.danger{background:#512832;border-color:#743640}
+button:disabled{opacity:.4}
+#map{height: min(56vh,520px);min-height:330px;border-radius:11px;overflow:hidden}
+.maphead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#0b1423;padding:10px;border-radius:10px}.stat b{display:block;font-size:18px;margin-top:4px}
+#status{font-weight:700;color:var(--green)}#routeList{max-height:160px;overflow:auto;font-size:12px;color:var(--muted);line-height:1.7}
+.note{border-left:3px solid var(--blue);padding-left:10px}
+@media(max-width:560px){.fields{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.stat b{font-size:15px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="brand">TRANSPORTE YUMBO</div><div class="sub">Administrador · Creación y grabación de recorridos</div></div></header>
+<main>
+<section><h1>Crear una ruta</h1><div class="muted">Diseña el trayecto en el mapa o grábalo mientras recorres el camino con el celular.</div></section>
+<section class="card">
+ <div class="fields">
+  <div><label for="routeName">Nombre del recorrido</label><input id="routeName" placeholder="Ej. Ruta Centro - La Estancia"></div>
+  <div><label for="routeId">Código de ruta</label><input id="routeId" value="RUTA001" placeholder="RUTA001"></div>
+ </div>
+ <div class="help" style="margin-top:8px">Usa un código único para cada recorrido. Si guardas otra vez el mismo código, reemplazarás esa ruta.</div>
+</section>
+<section class="card">
+ <div class="tabs">
+  <button id="manualTab" class="active" type="button">Dibujar en el mapa</button>
+  <button id="gpsTab" type="button">Grabar con GPS</button>
+ </div>
+ <p id="modeHelp" class="help">Toca el mapa para agregar puntos consecutivos al recorrido. Luego selecciona un punto y márcalo como parada.</p>
+ <div class="actions">
+  <button id="addStop">Marcar último punto como parada</button>
+  <button id="undo">Deshacer último punto</button>
+ </div>
+ <div id="gpsActions" class="actions" style="display:none;margin-top:9px">
+  <button id="startGps" class="primary">Iniciar grabación GPS</button>
+  <button id="stopGps" class="danger" disabled>Detener grabación</button>
+  <button id="gpsStop">Agregar parada aquí</button>
+  <button id="centerGps">Centrar en mi ubicación</button>
+ </div>
+</section>
+<section class="card">
+ <div class="maphead"><b>Mapa del recorrido</b><span class="muted" id="status">Listo para crear</span></div>
+ <div id="map"></div>
+ <p class="help note">Dibujo manual: agrega puntos tocando el mapa. Grabación GPS: permite ubicación en Chrome y mantén esta página abierta mientras recorres la ruta. La precisión depende de la señal GPS.</p>
+</section>
+<section class="card">
+ <div class="stats">
+  <div class="stat"><span class="muted">Puntos</span><b id="pointCount">0</b></div>
+  <div class="stat"><span class="muted">Paradas</span><b id="stopCount">0</b></div>
+  <div class="stat"><span class="muted">Distancia aprox.</span><b id="distance">0 m</b></div>
+ </div>
+ <h3 style="font-size:15px;margin:14px 0 6px">Paradas registradas</h3>
+ <div id="routeList">Aún no hay paradas.</div>
+ <div class="actions" style="margin-top:13px">
+  <button id="clear" class="danger">Borrar diseño</button>
+  <button id="save" class="primary">Guardar ruta en Firebase</button>
+ </div>
+ <p class="help">La ruta se almacena en Firebase en /routes/CODIGO. Es necesario habilitar permisos de lectura y escritura para la ruta en las reglas de prueba.</p>
+</section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const FIREBASE='https://mi-ruta-1ceed-default-rtdb.firebaseio.com/routes';
+const $=id=>document.getElementById(id);
+const map=L.map('map').setView([3.582,-76.49],14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);
+let mode='manual',points=[],stops=[],line=null,pointLayer=L.layerGroup().addTo(map),stopLayer=L.layerGroup().addTo(map),watchId=null,currentPosition=null,lastGpsPoint=null;
+function status(t){$('status').textContent=t}
+function haversine(a,b){const r=x=>x*Math.PI/180,R=6371000,d1=r(b.lat-a.lat),d2=r(b.lon-a.lon),x=Math.sin(d1/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(d2/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function distance(){let d=0;for(let i=1;i<points.length;i++)d+=haversine(points[i-1],points[i]);return d}
+function render(){
+ pointLayer.clearLayers();stopLayer.clearLayers();
+ points.forEach((p,i)=>L.circleMarker([p.lat,p.lon],{radius:5,color:'#63a8ff',fillColor:'#63a8ff',fillOpacity:1}).bindTooltip('Punto '+(i+1)).addTo(pointLayer));
+ stops.forEach(s=>L.marker([s.lat,s.lon]).bindPopup(s.name).addTo(stopLayer));
+ if(line)map.removeLayer(line);
+ if(points.length>1)line=L.polyline(points.map(p=>[p.lat,p.lon]),{color:'#27d69a',weight:5}).addTo(map);else line=null;
+ $('pointCount').textContent=points.length;$('stopCount').textContent=stops.length;
+ const d=distance();$('distance').textContent=d>=1000?(d/1000).toFixed(2)+' km':Math.round(d)+' m';
+ $('routeList').innerHTML=stops.length?stops.map((s,i)=>(i+1)+'. '+escapeHtml(s.name)+' — punto '+s.point_index).join('<br>'):'Aún no hay paradas.';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function addPoint(lat,lon,source){const p={lat:Number(lat),lon:Number(lon)};if(points.length&&haversine(points[points.length-1],p)<4)return;points.push(p);render();status(source==='gps'?'Grabando recorrido GPS':'Punto agregado');}
+function setMode(next){
+ if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}
+ mode=next;$('manualTab').classList.toggle('active',mode==='manual');$('gpsTab').classList.toggle('active',mode==='gps');
+ $('gpsActions').style.display=mode==='gps'?'grid':'none';
+ $('modeHelp').textContent=mode==='manual'?'Toca el mapa para agregar puntos consecutivos al recorrido. Luego selecciona un punto y márcalo como parada.':'Pulsa Iniciar grabación GPS y recorre el trayecto. El celular irá guardando puntos automáticamente; puedes agregar paradas cuando llegues a ellas.';
+ status(mode==='manual'?'Modo dibujo manual':'Modo grabación GPS');
+}
+$('manualTab').onclick=()=>setMode('manual');$('gpsTab').onclick=()=>setMode('gps');
+map.on('click',e=>{if(mode==='manual')addPoint(e.latlng.lat,e.latlng.lng,'manual')});
+$('undo').onclick=()=>{if(points.length){const removed=points.pop();stops=stops.filter(s=>!(s.lat===removed.lat&&s.lon===removed.lon));render();status('Último punto eliminado')}};
+$('addStop').onclick=()=>{if(!points.length){status('Agrega primero un punto al recorrido');return}const p=points[points.length-1];const name=prompt('Nombre de la parada:','Parada '+(stops.length+1));if(name&&name.trim()){stops.push({name:name.trim(),lat:p.lat,lon:p.lon,point_index:points.length});render();status('Parada agregada')}};
+$('startGps').onclick=()=>{
+ if(!navigator.geolocation){status('GPS no disponible en este navegador');return}
+ if(!window.isSecureContext){status('Abre esta página mediante HTTPS');return}
+ if(watchId!==null)navigator.geolocation.clearWatch(watchId);
+ status('Solicitando permiso de ubicación...');
+ watchId=navigator.geolocation.watchPosition(pos=>{
+  const c=pos.coords;currentPosition={lat:c.latitude,lon:c.longitude,accuracy:c.accuracy};
+  if(!lastGpsPoint||haversine(lastGpsPoint,currentPosition)>=10){addPoint(c.latitude,c.longitude,'gps');lastGpsPoint={lat:c.latitude,lon:c.longitude}}
+  status('Grabando GPS · precisión '+Math.round(c.accuracy)+' m');
+ },err=>{status(({1:'Permiso GPS denegado',2:'Ubicación no disponible',3:'Tiempo de espera agotado'})[err.code]||'Error GPS')},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+ $('startGps').disabled=true;$('stopGps').disabled=false;
+};
+$('stopGps').onclick=()=>{if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}$('startGps').disabled=false;$('stopGps').disabled=true;status('Grabación GPS detenida')};
+$('gpsStop').onclick=()=>{if(!currentPosition){status('Aún no hay posición GPS');return}const name=prompt('Nombre de esta parada:','Parada '+(stops.length+1));if(name&&name.trim()){const p={lat:currentPosition.lat,lon:currentPosition.lon};stops.push({name:name.trim(),lat:p.lat,lon:p.lon,point_index:points.length});render();status('Parada GPS agregada')}};
+$('centerGps').onclick=()=>{if(currentPosition)map.setView([currentPosition.lat,currentPosition.lon],17);else status('Esperando una ubicación GPS')};
+$('clear').onclick=()=>{if(!confirm('¿Borrar todos los puntos y paradas de este diseño?'))return;points=[];stops=[];lastGpsPoint=null;render();status('Diseño borrado')};
+$('save').onclick=async()=>{
+ const name=$('routeName').value.trim(),id=$('routeId').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+ if(!name||!id){status('Escribe el nombre y el código de la ruta');return}
+ if(points.length<2){status('Agrega al menos dos puntos al recorrido');return}
+ if(stops.length<2){status('Agrega al menos dos paradas: inicio y destino');return}
+ const data={route_id:id,name,method:mode,coordinates:points.map((p,i)=>({sequence:i+1,latitude:p.lat,longitude:p.lon})),stops:stops.map((s,i)=>({sequence:i+1,name:s.name,latitude:s.lat,longitude:s.lon,point_index:s.point_index})),distance_meters:Math.round(distance()),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ $('save').disabled=true;status('Guardando ruta...');
+ try{const r=await fetch(FIREBASE+'/'+encodeURIComponent(id)+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw new Error('Firebase HTTP '+r.status);status('Ruta guardada correctamente');alert('Ruta '+id+' guardada en Firebase.');}
+ catch(e){console.error(e);status('No se pudo guardar. Revisa las reglas de Firebase.');alert('No se pudo guardar la ruta. Es posible que Firebase no permita escribir en /routes.');}
+ finally{$('save').disabled=false}
+};
+window.addEventListener('beforeunload',()=>{if(watchId!==null)navigator.geolocation.clearWatch(watchId)});
+render();
+</script>
+</body>
+</html>
