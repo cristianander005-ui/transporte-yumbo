@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pasajero - Transporte Yumbo</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #101827;
+  color: white;
+}
+
+header {
+  background: #172b46;
+  padding: 20px;
+  text-align: center;
+}
+
+.panel {
+  padding: 16px;
+}
+
+.dato {
+  background: #1c2b40;
+  padding: 14px;
+  border-radius: 9px;
+  margin: 10px 0;
+}
+
+.valor {
+  color: #45d6a0;
+  font-weight: bold;
+}
+
+#mapa {
+  height: 430px;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+small {
+  color: #b5c4d8;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>TRANSPORTE YUMBO</h2>
+  <small>Consulta de ubicación para pasajeros</small>
+</header>
+
+<div class="panel">
+
+  <h3>Vehículo BUS001</h3>
+
+  <div class="dato">
+    Estado:
+    <span class="valor" id="estado">Conectando...</span>
+  </div>
+
+  <div class="dato">
+    Velocidad:
+    <span class="valor" id="velocidad">--</span>
+  </div>
+
+  <div class="dato">
+    Última actualización:
+    <span class="valor" id="hora">--</span>
+  </div>
+
+  <div class="dato">
+    ETA aproximado:
+    <span class="valor" id="eta">Selecciona un destino en el mapa</span>
+  </div>
+
+  <p><small>
+    Toca el mapa para elegir un destino de prueba.
+    El ETA usa distancia en línea recta y velocidad GPS;
+    no representa todavía una ruta vial.
+  </small></p>
+
+  <div id="mapa"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+const FIREBASE_URL =
+"https://mi-ruta-1ceed-default-rtdb.firebaseio.com/buses/BUS001.json";
+
+const mapa = L.map('mapa').setView([3.582, -76.49], 14);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+}).addTo(mapa);
+
+let marcadorBus = null;
+let marcadorDestino = null;
+let posicionBus = null;
+let velocidadBus = null;
+let destino = null;
+
+function distanciaKm(a, b) {
+
+  const R = 6371;
+  const rad = grados => grados * Math.PI / 180;
+
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) *
+    Math.cos(rad(b.lat)) *
+    Math.sin(dLon / 2) ** 2;
+
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function calcularETA() {
+
+  if (!posicionBus || !destino) {
+    document.getElementById('eta').textContent =
+      'Selecciona un destino en el mapa';
+    return;
+  }
+
+  const distancia = distanciaKm(posicionBus, destino);
+
+  if (distancia < 0.03) {
+    document.getElementById('eta').textContent =
+      'Has llegado al destino de prueba';
+    return;
+  }
+
+  if (velocidadBus === null || velocidadBus < 3) {
+    document.getElementById('eta').textContent =
+      'Velocidad insuficiente para estimar';
+    return;
+  }
+
+  const minutos = Math.round((distancia / velocidadBus) * 60);
+
+  document.getElementById('eta').textContent =
+    minutos + ' minutos aproximadamente';
+}
+
+mapa.on('click', function(e) {
+
+  destino = {
+    lat: e.latlng.lat,
+    lon: e.latlng.lng
+  };
+
+  if (!marcadorDestino) {
+    marcadorDestino = L.marker(e.latlng)
+      .addTo(mapa)
+      .bindPopup('Destino de prueba')
+      .openPopup();
+  } else {
+    marcadorDestino.setLatLng(e.latlng);
+  }
+
+  calcularETA();
+});
+
+async function consultarBus() {
+
+  try {
+
+    const respuesta = await fetch(FIREBASE_URL);
+
+    if (!respuesta.ok) {
+      throw new Error('Error HTTP ' + respuesta.status);
+    }
+
+    const datos = await respuesta.json();
+
+    if (!datos || datos.latitude == null || datos.longitude == null) {
+      document.getElementById('estado').textContent =
+        'Esperando datos del bus';
+      return;
+    }
+
+    posicionBus = {
+      lat: Number(datos.latitude),
+      lon: Number(datos.longitude)
+    };
+
+    velocidadBus = datos.speed_kmh == null
+      ? null
+      : Number(datos.speed_kmh);
+
+    const punto = [posicionBus.lat, posicionBus.lon];
+
+    if (!marcadorBus) {
+      marcadorBus = L.marker(punto)
+        .addTo(mapa)
+        .bindPopup('BUS001');
+    } else {
+      marcadorBus.setLatLng(punto);
+    }
+
+    document.getElementById('velocidad').textContent =
+      velocidadBus === null
+        ? 'No disponible'
+        : velocidadBus.toFixed(1) + ' km/h';
+
+    const fecha = new Date(datos.timestamp);
+    const antiguedad = Date.now() - fecha.getTime();
+
+    document.getElementById('hora').textContent =
+      fecha.toLocaleTimeString();
+
+    if (!Number.isFinite(antiguedad) || antiguedad > 30000 || antiguedad < -60000) {
+      document.getElementById('estado').textContent =
+        'Ubicación desactualizada';
+    } else {
+      document.getElementById('estado').textContent =
+        'Bus localizado';
+    }
+
+    mapa.setView(punto, 16);
+    calcularETA();
+
+  } catch (error) {
+
+    console.error(error);
+
+    document.getElementById('estado').textContent =
+      'Error de conexión con Firebase';
+
+  }
+}
+
+consultarBus();
+setInterval(consultarBus, 3000);
+
+</script>
+
+</body>
+</html>
