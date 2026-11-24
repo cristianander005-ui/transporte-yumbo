@@ -2,102 +2,249 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101b2d">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10263D">
 <title>Transporte Yumbo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--bg:#0b1423;--panel:#142238;--line:#2a405d;--text:#f3f7fc;--muted:#a8bad0;--green:#27d69a;--blue:#63a8ff;--red:#ff747b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial}
-header{padding:20px 16px;background:linear-gradient(135deg,#173b5d,#12243b);border-bottom:1px solid var(--line);text-align:center}
-.brand{font-weight:900;letter-spacing:.08em;font-size:20px}.sub{color:var(--muted);font-size:13px;margin-top:5px}
-main{max-width:980px;margin:auto;padding:16px;display:grid;gap:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px}
-h1{font-size:22px;margin:0 0 7px}h2{font-size:18px;margin:0 0 10px}h3{font-size:15px;margin:14px 0 8px}
-.muted,.help{color:var(--muted);font-size:12px;line-height:1.5}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.role{min-height:145px;text-align:left;display:flex;flex-direction:column;gap:9px;justify-content:flex-start}
-.role .emoji{font-size:30px}.role b{font-size:16px}.role span:last-child{font-size:12px;color:var(--muted);font-weight:400}
-button,input,select{font:inherit}button{padding:12px;border-radius:10px;border:1px solid var(--line);background:#263b56;color:var(--text);font-weight:700}
-button.primary{background:var(--green);border-color:var(--green);color:#062017}
-button.danger{background:#512832;border-color:#743640}
-button:disabled{opacity:.45}
-input,select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#0b1423;color:var(--text)}
-label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
-.field{margin:10px 0}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1}
-.stat{background:#0b1423;border-radius:10px;padding:11px;margin:8px 0}.stat b{color:var(--green)}
-#map{height:390px;border-radius:11px;overflow:hidden}
-#status{color:var(--green);font-weight:700}
+:root{--ink:#10263D;--paper:#EFF3F7;--surface:#fff;--line:#DCE4EC;--muted:#5B6E82;--signal:#FFC52E;--signal-soft:#FFF3CC;--live:#12B886;--live-soft:#DDF6EC;--sky:#2F7DE1;--sky-soft:#E1EDFC;--alert-soft:#FDE7E8;--shadow-s:0 1px 2px rgba(16,38,61,.06),0 4px 14px rgba(16,38,61,.07);--shadow-m:0 10px 30px rgba(16,38,61,.18);--nav-h:calc(66px + env(safe-area-inset-bottom,0px))}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:var(--ink);color:#fff}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--signal);color:var(--ink);display:grid;place-items:center}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;line-height:1.1}.sub{color:#A9BCD0;font-size:12px;margin-top:2px}
+main{max-width:980px;margin:0 auto;padding:16px 16px calc(var(--nav-h) + 20px);display:grid;gap:14px}
+section{display:grid;gap:14px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:var(--shadow-s);display:grid;gap:12px}
+h1{font-size:30px;line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:0}
+h2{font-size:17px;font-weight:800;margin:0;display:flex;gap:10px;align-items:center;letter-spacing:-.01em}
+.muted,.help{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+.chip{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--sky-soft);color:var(--sky)}
+.chip.y{background:var(--signal-soft);color:#8A6200}.chip.g{background:var(--live-soft);color:#0B7A59}
+button{font:inherit;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700;cursor:pointer;transition:transform .12s,background .15s}
+button:active{transform:scale(.97)}
+button.primary{background:var(--signal);border-color:var(--signal)}
+button.danger{background:var(--alert-soft);border-color:#F6C9CB;color:#B3262B}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select{font:inherit;font-size:16px;width:100%;min-height:46px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+select{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235B6E82' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+label{display:block;color:var(--muted);font-size:12px;font-weight:600;margin:0 0 6px}
+.field{margin:0}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
 .hidden{display:none!important}
-.back{margin-bottom:10px;background:transparent}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.tabs button{flex:1}
-.list{font-size:13px;color:var(--muted);line-height:1.8}
-@media(max-width:620px){.grid{grid-template-columns:1fr}.role{min-height:110px;display:grid;grid-template-columns:45px 1fr;align-items:center}.role .emoji{grid-row:span 2}.role span:last-child{grid-column:2}#map{height:340px}}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--paper);border-radius:16px}
+.seg button{border:0;background:transparent;color:var(--muted);min-height:42px;border-radius:12px}
+.seg button.primary{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-s)}
+/* tarjetas de información */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tiles.t3{grid-template-columns:repeat(3,1fr)}
+.tile{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:11px 12px;min-width:0}
+.tile .chip{width:34px;height:34px;border-radius:11px}
+.tile .k{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.tile b{display:block;font-size:15px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.tile.v{flex-direction:column;align-items:flex-start;gap:8px}.tile.v b{font-size:21px;letter-spacing:-.02em}
+.wide{grid-column:1/-1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--live);box-shadow:0 0 0 4px var(--live-soft);flex:none;margin:0 6px}
+.list{font-size:14px;color:var(--ink);line-height:1.9}
+/* inicio */
+.hero{background:var(--ink);color:#fff;border-radius:26px;padding:22px 20px 12px;overflow:hidden}
+.hero p{color:#A9BCD0;margin:8px 0 12px}.hero svg{width:100%;height:auto;display:block}
+.roles{display:grid;gap:10px}
+.role{justify-content:flex-start;text-align:left;gap:14px;min-height:84px;padding:14px 16px;border-radius:20px;box-shadow:var(--shadow-s)}
+.role .chip{width:48px;height:48px;border-radius:16px}
+.role .t{flex:1;display:grid;gap:2px}.role b{font-size:16px}.role small{font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.35}
+.role .go{color:var(--muted)}
+/* mapa admin */
+#map{height:min(56vh,520px);min-height:320px;border-radius:22px;overflow:hidden;z-index:0;border:1px solid var(--line);box-shadow:var(--shadow-s)}
+/* vistas a pantalla completa */
+.view-full{position:fixed;inset:0 0 var(--nav-h) 0;z-index:10;display:block}
+body:has(#driver:not(.hidden)) header,body:has(#passenger:not(.hidden)) header{display:none}
+#passengerMap{position:absolute;inset:0;z-index:0}
+.float{position:absolute;left:12px;right:12px;max-width:560px;margin:0 auto;z-index:5}
+.float.top{top:max(12px,env(safe-area-inset-top,0px))}.float.bottom{bottom:26px}
+.glass{background:rgba(255,255,255,.93);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:22px;box-shadow:var(--shadow-m);padding:12px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sheet summary{list-style:none;cursor:pointer;display:block}.sheet summary::-webkit-details-marker{display:none}
+.grab{display:flex;justify-content:center;color:var(--muted);margin:-4px 0 4px}
+.grab .i{width:18px;height:18px;transition:transform .2s}.sheet[open] .grab .i{transform:rotate(180deg)}
+.sheet-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;max-height:36vh;overflow:auto}
+/* conductor */
+.radar{position:absolute;inset:0;background:radial-gradient(circle at 50% 36%,transparent 0 70px,rgba(47,125,225,.14) 71px 72px,transparent 73px 130px,rgba(47,125,225,.12) 131px 132px,transparent 133px 200px,rgba(47,125,225,.1) 201px 202px,transparent 203px),linear-gradient(rgba(16,38,61,.06) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,rgba(16,38,61,.06) 1px,transparent 1px) 0 0/48px 48px,#E6EDF4}
+.d-inner{position:absolute;inset:0;max-width:560px;margin:0 auto;padding:max(12px,env(safe-area-inset-top,0px)) 12px 26px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.d-center{flex:1;min-height:190px;display:grid;place-items:center;align-content:center;gap:22px;text-align:center}
+.beacon{width:84px;height:84px;border-radius:50%;background:var(--signal);display:grid;place-items:center;position:relative;box-shadow:var(--shadow-m)}
+.beacon .i{width:38px;height:38px}
+.beacon::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid var(--signal);animation:ping 2.6s ease-out infinite}
+@keyframes ping{to{transform:scale(2.3);opacity:0}}
+@media(prefers-reduced-motion:reduce){.beacon::after{animation:none}}
+.pill{display:flex;align-items:center;background:#fff;padding:10px 16px 10px 10px;border-radius:999px;box-shadow:var(--shadow-s);max-width:92%;text-align:left}
+.pill .k{display:block;font-size:11.5px;color:var(--muted)}.pill b{font-size:14px;font-weight:700}
+/* navegación inferior */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:2000;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav>div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.nv{flex-direction:column;gap:3px;min-height:66px;border:0;background:none;border-radius:0;color:var(--muted);font-size:11.5px;font-weight:600;padding:6px 0}
+.nv .ic{width:54px;height:30px;border-radius:15px;display:grid;place-items:center;transition:background .2s}
+body:has(#home:not(.hidden)) .nv.n-home,body:has(#admin:not(.hidden)) .nv.n-admin,body:has(#driver:not(.hidden)) .nv.n-driver,body:has(#passenger:not(.hidden)) .nv.n-passenger{color:var(--ink);font-weight:800}
+body:has(#home:not(.hidden)) .nv.n-home .ic,body:has(#admin:not(.hidden)) .nv.n-admin .ic,body:has(#driver:not(.hidden)) .nv.n-driver .ic,body:has(#passenger:not(.hidden)) .nv.n-passenger .ic{background:var(--signal)}
+/* controles de Leaflet */
+.leaflet-bar{border:0!important;border-radius:14px;box-shadow:var(--shadow-m)!important;overflow:hidden}
+.leaflet-bar a{width:38px;height:38px;line-height:38px;color:var(--ink)}
+.leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,.8)!important;border-radius:8px 0 0 0}
+#passenger .leaflet-top.leaflet-left{top:50%;left:auto;right:4px;transform:translateY(-50%)}
+.leaflet-popup-content-wrapper{border-radius:14px}
+@media(min-width:760px){.roles{grid-template-columns:repeat(3,1fr)}.role{flex-direction:column;align-items:flex-start;min-height:170px}.role .go{display:none}.hero{padding:30px 28px 16px}h1{font-size:38px}}
 </style>
 </head>
 <body>
-<header><div class="brand">TRANSPORTE YUMBO</div><div class="sub">Sistema de información y seguimiento GPS</div></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+<symbol id="i-bus" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16M8 17v3M16 17v3"/><path d="M8.5 14h.01M15.5 14h.01"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0"/><path d="m12 17 4-5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-lat" viewBox="0 0 24 24"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/></symbol>
+<symbol id="i-lon" viewBox="0 0 24 24"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"/></symbol>
+<symbol id="i-ruler" viewBox="0 0 24 24"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></symbol>
+<symbol id="i-points" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 3v6h8M8 21v-7h8v7"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11A8 8 0 0 0 5.5 7L4 9M4 4v5h5M4 13a8 8 0 0 0 14.5 4L20 15M20 20v-5h-5"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="m4 20 4-1L19 8l-3-3L5 16z"/></symbol>
+<symbol id="i-gps" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="i-nav" viewBox="0 0 24 24"><path d="m12 3 7 17-7-4-7 4z"/></symbol>
+</defs></svg>
+
+<header>
+ <div class="logo"><svg class="i"><use href="#i-bus"/></svg></div>
+ <div><div class="brand">Transporte Yumbo</div><div class="sub">Información y seguimiento GPS</div></div>
+</header>
+
 <main>
+<!-- INICIO -->
 <section id="home">
- <div class="card">
-  <h1>Bienvenido</h1><p class="muted">Selecciona el modo que deseas utilizar.</p>
-  <div class="grid">
-   <button class="role" onclick="showRole('admin')"><span class="emoji">🛠️</span><b>Administrador</b><span>Crear recorridos, paradas y administrar rutas.</span></button>
-   <button class="role" onclick="showRole('driver')"><span class="emoji">🚌</span><b>Conductor</b><span>Activar GPS y transmitir la ubicación del vehículo.</span></button>
-   <button class="role" onclick="showRole('passenger')"><span class="emoji">📍</span><b>Pasajero</b><span>Consultar recorridos y ubicación de los buses.</span></button>
-  </div>
+ <div class="hero">
+  <h1>Tu bus en tiempo real</h1>
+  <p>Elige cómo quieres usar el sistema.</p>
+  <svg viewBox="0 0 320 56" aria-hidden="true">
+   <path d="M10 44H80C110 44 110 14 140 14H210C240 14 240 44 270 44H310" fill="none" stroke="#FFC52E" stroke-width="5" stroke-linecap="round"/>
+   <g fill="#10263D" stroke="#fff" stroke-width="3"><circle cx="10" cy="44" r="6"/><circle cx="80" cy="44" r="6"/><circle cx="210" cy="14" r="6"/><circle cx="270" cy="44" r="6"/><circle cx="310" cy="44" r="6"/></g>
+   <circle cx="140" cy="14" r="9" fill="#FFC52E" stroke="#fff" stroke-width="3"/>
+  </svg>
+ </div>
+ <div class="roles">
+  <button class="role" onclick="showRole('admin')"><span class="chip"><svg class="i"><use href="#i-sliders"/></svg></span><span class="t"><b>Administrador</b><small>Crear recorridos, paradas y administrar rutas.</small></span><svg class="i go"><use href="#i-next"/></svg></button>
+  <button class="role" onclick="showRole('driver')"><span class="chip y"><svg class="i"><use href="#i-bus"/></svg></span><span class="t"><b>Conductor</b><small>Activar GPS y transmitir la ubicación del vehículo.</small></span><svg class="i go"><use href="#i-next"/></svg></button>
+  <button class="role" onclick="showRole('passenger')"><span class="chip g"><svg class="i"><use href="#i-pin"/></svg></span><span class="t"><b>Pasajero</b><small>Consultar recorridos y ubicación de los buses.</small></span><svg class="i go"><use href="#i-next"/></svg></button>
  </div>
  <p class="help">Prototipo académico. La ubicación y los tiempos estimados dependen de la conexión y la señal GPS.</p>
 </section>
 
+<!-- ADMINISTRADOR -->
 <section id="admin" class="hidden">
- <button class="back" onclick="goHome()">← Volver al inicio</button>
  <div class="card">
-  <h1>Administrador de rutas</h1><p class="muted">Dibuja el recorrido tocando el mapa y agrega sus paradas. También puedes grabarlo con GPS.</p>
-  <div class="field"><label>Nombre del recorrido</label><input id="routeName" placeholder="Ej. Centro - La Estancia"></div>
-  <div class="field"><label>Código único</label><input id="routeId" value="RUTA001"></div>
-  <div class="tabs"><button id="manualTab" class="primary" onclick="setMode('manual')">Dibujar en mapa</button><button id="gpsTab" onclick="setMode('gps')">Grabar con GPS</button></div>
-  <div class="row"><button onclick="addStopAtLast()">Marcar último punto como parada</button><button onclick="undoPoint()">Deshacer punto</button></div>
-  <div class="row" id="gpsControls" style="margin-top:8px"><button class="primary" id="startRouteGps" onclick="startRouteGPS()">Iniciar GPS</button><button class="danger" id="stopRouteGps" onclick="stopRouteGPS()" disabled>Detener GPS</button><button onclick="addGpsStop()">Parada aquí</button></div>
-  <div class="stat">Estado: <b id="adminStatus">Listo para crear ruta</b></div>
-  <div id="map"></div>
-  <div class="row"><div class="stat">Puntos: <b id="pointCount">0</b></div><div class="stat">Paradas: <b id="stopCount">0</b></div><div class="stat">Distancia: <b id="distance">0 m</b></div></div>
+  <h2><span class="chip"><svg class="i"><use href="#i-sliders"/></svg></span>Administrador de rutas</h2>
+  <p class="muted">Dibuja el recorrido tocando el mapa y agrega sus paradas. También puedes grabarlo con GPS.</p>
+  <div class="row">
+   <div class="field"><label for="routeName">Nombre del recorrido</label><input id="routeName" placeholder="Ej. Centro - La Estancia"></div>
+   <div class="field"><label for="routeId">Código único</label><input id="routeId" value="RUTA001"></div>
+  </div>
+  <div class="seg"><button id="manualTab" class="primary" onclick="setMode('manual')"><svg class="i"><use href="#i-pen"/></svg>Dibujar en mapa</button><button id="gpsTab" onclick="setMode('gps')"><svg class="i"><use href="#i-gps"/></svg>Grabar con GPS</button></div>
+ </div>
+ <div class="tile"><span class="dot"></span><div><span class="k">Estado</span><b id="adminStatus">Listo para crear ruta</b></div></div>
+ <div id="map"></div>
+ <div class="tiles t3">
+  <div class="tile v"><span class="chip"><svg class="i"><use href="#i-points"/></svg></span><div><span class="k">Puntos</span><b id="pointCount">0</b></div></div>
+  <div class="tile v"><span class="chip y"><svg class="i"><use href="#i-flag"/></svg></span><div><span class="k">Paradas</span><b id="stopCount">0</b></div></div>
+  <div class="tile v"><span class="chip g"><svg class="i"><use href="#i-ruler"/></svg></span><div><span class="k">Distancia</span><b id="distance">0 m</b></div></div>
+ </div>
+ <div class="card">
+  <h2>Herramientas</h2>
+  <div class="row"><button onclick="addStopAtLast()"><svg class="i"><use href="#i-flag"/></svg>Marcar último punto como parada</button><button onclick="undoPoint()"><svg class="i"><use href="#i-undo"/></svg>Deshacer punto</button></div>
+  <div class="row" id="gpsControls"><button class="primary" id="startRouteGps" onclick="startRouteGPS()"><svg class="i"><use href="#i-play"/></svg>Iniciar GPS</button><button class="danger" id="stopRouteGps" onclick="stopRouteGPS()" disabled><svg class="i"><use href="#i-stop"/></svg>Detener GPS</button><button onclick="addGpsStop()"><svg class="i"><use href="#i-pin"/></svg>Parada aquí</button></div>
+ </div>
+ <div class="card">
+  <h2><span class="chip y"><svg class="i"><use href="#i-flag"/></svg></span>Paradas del recorrido</h2>
   <div id="stopList" class="list">Aún no hay paradas.</div>
-  <div class="row"><button class="danger" onclick="clearRoute()">Borrar diseño</button><button class="primary" onclick="saveRoute()">Guardar ruta en Firebase</button></div>
  </div>
- <div class="card"><h2>Rutas guardadas</h2><button onclick="loadRoutes()">Actualizar lista</button><div id="routesList" class="list">Pulsa actualizar para consultar Firebase.</div></div>
-</section>
-
-<section id="driver" class="hidden">
- <button class="back" onclick="goHome()">← Volver al inicio</button>
+ <div class="row"><button class="danger" onclick="clearRoute()"><svg class="i"><use href="#i-trash"/></svg>Borrar diseño</button><button class="primary" onclick="saveRoute()"><svg class="i"><use href="#i-save"/></svg>Guardar ruta en Firebase</button></div>
  <div class="card">
-  <h1>Modo conductor</h1><p class="muted">Selecciona el vehículo y la ruta asignada antes de iniciar el GPS.</p>
-  <div class="field"><label>Vehículo</label><input id="busId" value="BUS001"></div>
-  <div class="field"><label>Ruta asignada</label><select id="driverRoute"><option value="RUTA001">Cargando rutas...</option></select></div>
-  <div class="row"><button class="primary" onclick="startDriverGPS()">Iniciar seguimiento</button><button class="danger" onclick="stopDriverGPS()">Detener</button></div>
-  <div class="stat">Estado: <b id="driverStatus">Desconectado</b></div>
-  <div class="stat">Latitud: <b id="driverLat">--</b> · Longitud: <b id="driverLon">--</b></div>
-  <div class="stat">Velocidad: <b id="driverSpeed">--</b></div>
-  <div class="stat">Última actualización: <b id="driverTime">--</b></div>
+  <h2><span class="chip g"><svg class="i"><use href="#i-route"/></svg></span>Rutas guardadas</h2>
+  <button onclick="loadRoutes()"><svg class="i"><use href="#i-refresh"/></svg>Actualizar lista</button>
+  <div id="routesList" class="list">Pulsa actualizar para consultar Firebase.</div>
  </div>
 </section>
 
-<section id="passenger" class="hidden">
- <button class="back" onclick="goHome()">← Volver al inicio</button>
- <div class="card">
-  <h1>Consulta para pasajeros</h1>
-  <div class="field"><label>Vehículo</label><select id="passengerBus"><option value="BUS001">BUS001</option></select></div>
-  <div class="field"><label>Recorrido</label><select id="passengerRoute"><option value="">Selecciona una ruta</option></select></div>
-  <div class="stat">Estado del bus: <b id="passengerStatus">Consultando...</b></div>
-  <div class="stat">Velocidad: <b id="passengerSpeed">--</b> · Última actualización: <b id="passengerTime">--</b></div>
-  <div class="stat">Siguiente parada estimada: <b id="nextStop">--</b></div>
-  <div class="stat">ETA de prueba: <b id="eta">Selecciona un destino en el mapa</b></div>
-  <p class="help">Toca el mapa para marcar un destino de prueba. El ETA actual usa distancia en línea recta y velocidad GPS; todavía no considera calles, tráfico ni paradas.</p>
-  <div id="passengerMap" style="height:360px;border-radius:11px"></div>
+<!-- CONDUCTOR (el JS original no define mapa en esta vista; se ofrece un lienzo a pantalla completa con los controles flotando) -->
+<section id="driver" class="hidden view-full">
+ <div class="radar" aria-hidden="true"></div>
+ <div class="d-inner">
+  <div class="glass">
+   <div class="pair">
+    <div class="field"><label for="busId">Vehículo</label><input id="busId" value="BUS001"></div>
+    <div class="field"><label for="driverRoute">Ruta asignada</label><select id="driverRoute"><option value="RUTA001">Cargando rutas...</option></select></div>
+   </div>
+  </div>
+  <div class="d-center">
+   <div class="beacon"><svg class="i"><use href="#i-bus"/></svg></div>
+   <div class="pill"><span class="dot"></span><div><span class="k">Estado</span><b id="driverStatus">Desconectado</b></div></div>
+  </div>
+  <div class="glass">
+   <div class="row" style="margin-bottom:8px"><button class="primary" onclick="startDriverGPS()"><svg class="i"><use href="#i-play"/></svg>Iniciar seguimiento</button><button class="danger" onclick="stopDriverGPS()"><svg class="i"><use href="#i-stop"/></svg>Detener</button></div>
+   <div class="tiles">
+    <div class="tile"><span class="chip"><svg class="i"><use href="#i-lat"/></svg></span><div><span class="k">Latitud</span><b id="driverLat">--</b></div></div>
+    <div class="tile"><span class="chip"><svg class="i"><use href="#i-lon"/></svg></span><div><span class="k">Longitud</span><b id="driverLon">--</b></div></div>
+    <div class="tile"><span class="chip y"><svg class="i"><use href="#i-gauge"/></svg></span><div><span class="k">Velocidad</span><b id="driverSpeed">--</b></div></div>
+    <div class="tile"><span class="chip g"><svg class="i"><use href="#i-clock"/></svg></span><div><span class="k">Última actualización</span><b id="driverTime">--</b></div></div>
+   </div>
+  </div>
  </div>
+</section>
+
+<!-- PASAJERO -->
+<section id="passenger" class="hidden view-full">
+ <div id="passengerMap"></div>
+ <div class="float top glass">
+  <div class="pair">
+   <div class="field"><label for="passengerBus">Vehículo</label><select id="passengerBus"><option value="BUS001">BUS001</option></select></div>
+   <div class="field"><label for="passengerRoute">Recorrido</label><select id="passengerRoute"><option value="">Selecciona una ruta</option></select></div>
+  </div>
+ </div>
+ <details class="float bottom glass sheet">
+  <summary>
+   <div class="grab"><svg class="i"><use href="#i-up"/></svg></div>
+   <div class="tiles">
+    <div class="tile"><span class="chip g"><svg class="i"><use href="#i-pulse"/></svg></span><div><span class="k">Estado del bus</span><b id="passengerStatus">Consultando...</b></div></div>
+    <div class="tile"><span class="chip y"><svg class="i"><use href="#i-clock"/></svg></span><div><span class="k">ETA de prueba</span><b id="eta">Selecciona un destino en el mapa</b></div></div>
+   </div>
+  </summary>
+  <div class="sheet-body">
+   <div class="tile wide"><span class="chip"><svg class="i"><use href="#i-flag"/></svg></span><div><span class="k">Siguiente parada estimada</span><b id="nextStop">--</b></div></div>
+   <div class="tile"><span class="chip y"><svg class="i"><use href="#i-gauge"/></svg></span><div><span class="k">Velocidad</span><b id="passengerSpeed">--</b></div></div>
+   <div class="tile"><span class="chip g"><svg class="i"><use href="#i-clock"/></svg></span><div><span class="k">Última actualización</span><b id="passengerTime">--</b></div></div>
+   <p class="help wide">Toca el mapa para marcar un destino de prueba. El ETA actual usa distancia en línea recta y velocidad GPS; todavía no considera calles, tráfico ni paradas.</p>
+  </div>
+ </details>
 </section>
 </main>
+
+<nav aria-label="Navegación principal"><div>
+ <button class="nv n-home" onclick="goHome()"><span class="ic"><svg class="i"><use href="#i-home"/></svg></span>Inicio</button>
+ <button class="nv n-admin" onclick="goHome();showRole('admin')"><span class="ic"><svg class="i"><use href="#i-sliders"/></svg></span>Administrador</button>
+ <button class="nv n-driver" onclick="goHome();showRole('driver')"><span class="ic"><svg class="i"><use href="#i-bus"/></svg></span>Conductor</button>
+ <button class="nv n-passenger" onclick="goHome();showRole('passenger')"><span class="ic"><svg class="i"><use href="#i-pin"/></svg></span>Pasajero</button>
+</div></nav>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const DB='https://mi-ruta-1ceed-default-rtdb.firebaseio.com';
@@ -215,4 +362,4 @@ function calculateETA(){
 $('passengerRoute').addEventListener('change',()=>{if(busPosition)drawPassengerRoute($('passengerRoute').value)});
 </script>
 </body>
-</htm
+</html>
